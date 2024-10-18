@@ -47,17 +47,12 @@ Weather Monitor is a web application that provides real-time weather information
      OPENWEATHERMAP_API_KEY=your_api_key_here
      ```
 
-5. Initialize the database:
-   ```
-   python init_db.py
-   ```
-
-6. Run the application:
+5. Run the application:
    ```
    python app.py
    ```
 
-7. Open your web browser and navigate to `http://127.0.0.1:5000`
+6. Open your web browser and navigate to `http://127.0.0.1:5000`
    
 
 ## Usage
