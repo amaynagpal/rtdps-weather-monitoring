@@ -66,6 +66,7 @@ Weather Monitor is a web application that provides real-time weather information
 ![image](https://github.com/user-attachments/assets/27c7039f-8145-478e-b252-5b8233f534b8)
 ### Weather Report:
 ![image](https://github.com/user-attachments/assets/d53a6ac0-b850-415c-91c6-182ee46e820f)
+<br>
 ![image](https://github.com/user-attachments/assets/e6320e60-19e1-48ba-85e5-fefb6d5b07f4)
 
 ## Acknowledgements
