@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Monitor</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+    <header class="bg-gradient-to-r from-blue-500 to-blue-600 text-white py-6">
+        <h1 class="text-4xl font-bold text-center">Weather Monitor</h1>
+    </header>
+    
+    <div class="container mx-auto px-4 py-8">
+        <form class="flex justify-center mb-8" onsubmit="getWeather(); return false;">
+            <input type="text" id="city-input" placeholder="Enter city name" class="px-4 py-2 rounded-l-lg border-t border-b border-l text-gray-800 border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button type="submit" class="px-6 py-2 rounded-r-lg bg-blue-500 text-white font-bold hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">Get Weather</button>
+        </form>
+        
+        <div id="weather-info" class="bg-white rounded-lg shadow-md p-6 mb-8 hidden"></div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-bold mb-4">Daily Temperature Summary</h2>
+                <canvas id="daily-summary-chart"></canvas>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-bold mb-4">Last 7 Days Temperature</h2>
+                <canvas id="temperature-chart"></canvas>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-6 md:col-span-2">
+                <h2 class="text-2xl font-bold mb-4">Weather Condition Distribution</h2>
+                <canvas id="weather-distribution-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let temperatureChart, dailySummaryChart, weatherDistributionChart;
+
+        function getWeather() {
+            const city = document.getElementById('city-input').value;
+            fetch('/weather', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `city=${encodeURIComponent(city)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('weather-info').innerHTML = `<p class="text-red-500">${data.error}</p>`;
+                    document.getElementById('weather-info').classList.remove('hidden');
+                } else {
+                    displayWeather(data);
+                    createTemperatureChart(data.chart_data);
+                    createDailySummaryChart(data.daily_summary);
+                    createWeatherDistributionChart(data.weather_distribution);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function displayWeather(data) {
+            const current = data.current;
+            const summary = data.summary;
+            let html = `
+                <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+                    <div class="text-6xl font-bold">${current.temp}°C</div>
+                    <div class="text-2xl text-gray-600">${current.main}</div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="text-center">
+                        <div class="text-gray-600">Feels Like</div>
+                        <div class="text-xl font-semibold">${current.feels_like}°C</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-gray-600">Average Temp</div>
+                        <div class="text-xl font-semibold">${summary.avg_temp.toFixed(1)}°C</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-gray-600">Max Temp</div>
+                        <div class="text-xl font-semibold">${summary.max_temp}°C</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-gray-600">Min Temp</div>
+                        <div class="text-xl font-semibold">${summary.min_temp}°C</div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('weather-info').innerHTML = html;
+            document.getElementById('weather-info').classList.remove('hidden');
+        }
+
+        function createTemperatureChart(chartData) {
+            const ctx = document.getElementById('temperature-chart').getContext('2d');
+            if (temperatureChart) {
+                temperatureChart.destroy();
+            }
+            temperatureChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartData.dates.map(date => moment(date).format('MMM D')),
+                    datasets: [{
+                        label: 'Average Temperature (°C)',
+                        data: chartData.temperatures,
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Last 7 Days Temperature'
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Temperature (°C)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createDailySummaryChart(dailySummary) {
+            const ctx = document.getElementById('daily-summary-chart').getContext('2d');
+            if (dailySummaryChart) {
+                dailySummaryChart.destroy();
+            }
+            dailySummaryChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dailySummary.dates.map(date => moment(date).format('MMM D')),
+                    datasets: [{
+                        label: 'Daily Temperature (°C)',
+                        data: dailySummary.temperatures,
+                        borderColor: 'rgb(255, 99, 132)',
+                        tension: 0.1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Temperature (°C)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createWeatherDistributionChart(weatherDistribution) {
+            const ctx = document.getElementById('weather-distribution-chart').getContext('2d');
+            if (weatherDistributionChart) {
+                weatherDistributionChart.destroy();
+            }
+            weatherDistributionChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: weatherDistribution.labels,
+                    datasets: [{
+                        label: 'Weather Condition Frequency',
+                        data: weatherDistribution.data,
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgb(54, 162, 235)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Frequency'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Weather Condition'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
